@@ -8,7 +8,7 @@ import re
 import subprocess
 import sys
 
-import sh
+import subprocess
 from tqdm import tqdm
 
 from . import utils
@@ -177,7 +177,8 @@ def clone_repo(
         else:
             # print('Fetching for existing repo {} in {}'.format(url,repo_folder))
             # sh.git.fetch('origin', _cwd=repo_folder)
-            sh.git.fetch("--all", "--tags", _cwd=repo_folder)
+            # sh.git.fetch("--all", "--tags", _cwd=repo_folder)
+            subprocess.run(['git', 'fetch', '--all', '--tags'], cwd=repo_folder)
 
         return
     else:
@@ -186,30 +187,40 @@ def clone_repo(
     print("Processing %s" % url)
 
     try:
-        sh.git.init(_cwd=repo_folder)
+        # sh.git.init(_cwd=repo_folder)
+        subprocess.run(['git', 'init'], cwd=repo_folder)
     except:
         print(
             "Could not initialize repository in %s (already initialized?)" % repo_folder
         )
 
     try:
-        sh.git.remote("add", "origin", "%s" % url, _cwd=repo_folder)
+        # sh.git.remote("add", "origin", "%s" % url, _cwd=repo_folder)
+        subprocess.run(['git', 'remote', 'add', 'origin', "%s" % url], cwd=repo_folder)
     except:
         print("Could not update remote in %s" % repo_folder)
 
     if proxy:
         try:
-            sh.git.config("http.proxy", "{}".format(proxy), _cwd=repo_folder)
-            sh.git.config("https.proxy", "{}".format(proxy), _cwd=repo_folder)
-        except sh.ErrorReturnCode_128:
-            print("Error setting proxy for project %s in %s" % (repo_name, repo_folder))
+            # sh.git.config("http.proxy", "{}".format(proxy), _cwd=repo_folder)
+            subprocess.run(['git', 'config', 'http.proxy', '{}'.format(proxy)], cwd=repo_folder)
+            # sh.git.config("https.proxy", "{}".format(proxy), _cwd=repo_folder)
+            subprocess.run(['git', 'config', 'https.proxy', '{}'.format(proxy)], cwd=repo_folder)
+        # except sh.ErrorReturnCode_128:
+        except subprocess.CalledProcessError as e:
+            if e.returncode == 128:
+                print("Error setting proxy for project %s in %s" % (repo_name, repo_folder))
+            else:
+                print(f"Error: {e}")
 
     try:
         if shallow:
-            sh.git.fetch("--depth", "1", "origin", _cwd=repo_folder)
+            # sh.git.fetch("--depth", "1", "origin", _cwd=repo_folder)
+            subprocess.run(['git', 'fetch', '--depth', '1', 'origin'], cwd=repo_folder)
         else:
             # sh.git.fetch('--all', _cwd=repo_folder)
-            sh.git.fetch("--all", "--tags", _cwd=repo_folder)
+            # sh.git.fetch("--all", "--tags", _cwd=repo_folder)
+            subprocess.run(['git', 'fetch', '--all', '--tags'], cwd=repo_folder)
     except:
         print(
             "Could not fetch %s (shallow=%s) in %s" % (url, str(shallow), repo_folder)
@@ -232,7 +243,8 @@ def get_random_commits(n, repo, base_dir):
     repo_name = folder_name_from_url(repo)
     cwd = os.path.join(base_dir, repo_name)
     try:
-        all_commits = sh.git("log", "--all", "--format=%H", _cwd=cwd)
+        # all_commits = sh.git("log", "--all", "--format=%H", _cwd=cwd)
+        all_commits = subprocess.run(['git', 'log', '--all', '--format=%H'], cwd=cwd, capture_output=True, text=True, encoding="utf-8")
     except subprocess.CalledProcessError:
         print("Git command failed, cannot get random commits")
         return []
@@ -254,7 +266,8 @@ def extract_commit_msg(commit_id, repo, base_dir):
 
     cwd = os.path.join(base_dir, repo_name)
     try:
-        out = sh.git.log("--format=%s", "-n1", commit_id, _cwd=cwd)
+        # out = sh.git.log("--format=%s", "-n1", commit_id, _cwd=cwd)
+        out = subprocess.run(['git', 'log', '--format=%s', '-n1', commit_id], cwd=cwd, capture_output=True, text=True, encoding="utf-8")
     except:
         print(
             "Failed to obtain commit message for commit: %s in dir: %s"
@@ -273,7 +286,8 @@ def extract_commit_diff(commit_id, repo, base_dir):
     repo_name = folder_name_from_url(repo)
     cwd = os.path.join(base_dir, repo_name)
     try:
-        out = sh.git.diff(commit_id + "^.." + commit_id, _cwd=cwd, _tty_out=False)
+        # out = sh.git.diff(commit_id + "^.." + commit_id, _cwd=cwd, _tty_out=False)
+        out = subprocess.run(['git', 'diff', commit_id + "^.." + commit_id], cwd=cwd, capture_output=True, text=True, encoding="utf-8")
         # out = unicode(out, errors='ignore')
 
     except:
